@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, ArrowUpRight, Bell, Boxes, BrainCircuit, Check, ChevronRight, CircleAlert, Clock3, FilePlus2, Gauge, History, PackageSearch, PanelLeft, Plus, Settings, Sparkles, Truck, X } from 'lucide-react';
+import { supabase } from './utils/supabase';
 import './styles.css';
 
 const products = [
@@ -16,6 +17,7 @@ function App() {
   const [analysisPhase, setAnalysisPhase] = useState(0);
   const [modal, setModal] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [remoteNotices, setRemoteNotices] = useState([]);
   const runAnalysis = () => { setView('analysis'); setAnalysisPhase(0); setProcessing(true); };
   useEffect(() => {
     if (!processing) return undefined;
@@ -26,6 +28,15 @@ function App() {
     ];
     return () => timers.forEach(clearTimeout);
   }, [processing]);
+  useEffect(() => {
+    let active = true;
+    async function loadNotifications() {
+      const { data, error } = await supabase.from('todos').select('id, name').limit(3);
+      if (!error && data && active) setRemoteNotices(data);
+    }
+    loadNotifications();
+    return () => { active = false; };
+  }, []);
   const goDetail = (product) => { setSelected(product); setView('detail'); };
 
   return <main className="app-shell">
@@ -42,7 +53,7 @@ function App() {
       <div className="side-bottom"><Nav icon={<Settings/>} label="Configuración" active={view === 'settings'} onClick={() => setView('settings')}/><div className="user"><div className="avatar">EM</div><div><strong>Elena Mora</strong><small>Inventario</small></div><ChevronRight size={15}/></div></div>
     </aside>
     <section className="content">
-      <header><div><p className="eyebrow">MARTES, 15 JULIO 2026</p><h1>{view === 'dashboard' ? 'Buenos días, Elena.' : view === 'analysis' ? 'Orquestando inventario' : view === 'detail' ? 'Recomendación de reposición' : view === 'history' ? 'Historial de decisiones' : view === 'requests' ? 'Solicitudes de compra' : view === 'settings' ? 'Configuración de operación' : 'Inventario en riesgo'}</h1></div><div className="header-actions"><div className="notifications-wrap"><button className="icon-btn notification" aria-label="Ver notificaciones" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={19}/><b></b></button>{notificationsOpen&&<Notifications onSelect={(product)=>{setSelected(product);setView('detail');setNotificationsOpen(false)}}/>}</div><button className="action-button" onClick={runAnalysis}><Sparkles size={17}/> Analizar inventario</button></div></header>
+      <header><div><p className="eyebrow">MARTES, 15 JULIO 2026</p><h1>{view === 'dashboard' ? 'Buenos días, Elena.' : view === 'analysis' ? 'Orquestando inventario' : view === 'detail' ? 'Recomendación de reposición' : view === 'history' ? 'Historial de decisiones' : view === 'requests' ? 'Solicitudes de compra' : view === 'settings' ? 'Configuración de operación' : 'Inventario en riesgo'}</h1></div><div className="header-actions"><div className="notifications-wrap"><button className="icon-btn notification" aria-label="Ver notificaciones" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={19}/><b></b></button>{notificationsOpen&&<Notifications remoteNotices={remoteNotices} onSelect={(product)=>{setSelected(product);setView('detail');setNotificationsOpen(false)}}/>}</div><button className="action-button" onClick={runAnalysis}><Sparkles size={17}/> Analizar inventario</button></div></header>
       {view === 'dashboard' && <Dashboard onRun={runAnalysis} onDetail={goDetail}/>} 
       {view === 'analysis' && <Analysis processing={processing} phase={analysisPhase} onFinish={() => setView('results')}/>} 
       {view === 'results' && <Results onDetail={goDetail}/>} 
@@ -55,7 +66,7 @@ function App() {
   </main>
 }
 function Nav({icon,label,active,badge,onClick}) { return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{badge && <em>{badge}</em>}</button> }
-function Notifications({onSelect}){const notices=[{product:products[0],title:'Stock crítico detectado',detail:'Chaqueta Denim Classic · 5 unidades',time:'Hace 12 min',kind:'critical'},{product:products[1],title:'Reposición recomendada',detail:'Blazer Sastrero Arena · cobertura de 3 días',time:'Hace 38 min',kind:'warning'},{product:products[2],title:'Riesgo de cobertura',detail:'Pantalón Cargo Olive · revisa el pedido',time:'Hace 1 h',kind:'info'}];return <div className="notifications-panel"><div className="notifications-title"><div><p className="eyebrow">INVENTARIO</p><strong>Últimas alertas</strong></div><span>3 nuevas</span></div>{notices.map(note=><button className="notice" key={note.title} onClick={()=>onSelect(note.product)}><i className={note.kind}></i><div><strong>{note.title}</strong><p>{note.detail}</p><small>{note.time}</small></div><ChevronRight size={15}/></button>)}<div className="notifications-footer">Selecciona una alerta para ver la recomendación</div></div>}
+function Notifications({remoteNotices,onSelect}){const fallback=[{product:products[0],title:'Stock crítico detectado',detail:'Chaqueta Denim Classic · 5 unidades',time:'Hace 12 min',kind:'critical'},{product:products[1],title:'Reposición recomendada',detail:'Blazer Sastrero Arena · cobertura de 3 días',time:'Hace 38 min',kind:'warning'},{product:products[2],title:'Riesgo de cobertura',detail:'Pantalón Cargo Olive · revisa el pedido',time:'Hace 1 h',kind:'info'}];const notices=remoteNotices.length?remoteNotices.map((notice,index)=>({product:products[index%products.length],title:'Actualización de inventario',detail:notice.name,time:'Sincronizado con Supabase',kind:index===0?'critical':'info'})):fallback;return <div className="notifications-panel"><div className="notifications-title"><div><p className="eyebrow">INVENTARIO</p><strong>Últimas alertas</strong></div><span>{notices.length} nuevas</span></div>{notices.map((note,index)=><button className="notice" key={note.title+index} onClick={()=>onSelect(note.product)}><i className={note.kind}></i><div><strong>{note.title}</strong><p>{note.detail}</p><small>{note.time}</small></div><ChevronRight size={15}/></button>)}<div className="notifications-footer">Selecciona una alerta para ver la recomendación</div></div>}
 function Dashboard({onRun,onDetail}) { return <div className="page-enter"><section className="hero"><div className="hero-copy"><div className="pill"><Sparkles size={13}/> Inteligencia de inventario</div><h2>Tu inventario habla.<br/><i>StockFlow escucha.</i></h2><p>Detectamos el riesgo antes de que se convierta en una venta perdida.</p><button className="primary" onClick={onRun}>Iniciar análisis ahora <ArrowUpRight size={17}/></button></div><div className="orbital"><div className="orbit o1"></div><div className="orbit o2"></div><div className="core"><BrainCircuit size={38}/><small>AGENTES<br/>ACTIVOS</small></div><span className="node n1">A</span><span className="node n2">P</span><span className="node n3">R</span></div></section><div className="stats"><Stat icon={<Boxes/>} num="1,248" label="Productos monitoreados" change="+42 esta semana"/><Stat icon={<CircleAlert/>} num="12" label="Requieren atención" change="3 críticos" urgent/><Stat icon={<FilePlus2/>} num="03" label="Solicitudes por aprobar" change="Valor: $3,840"/></div><section className="section-head"><div><p className="eyebrow">REQUIERE ACCIÓN</p><h2>Alertas de reposición</h2></div><button className="text-button" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>Ver inventario <ChevronRight size={17}/></button></section><div className="alerts">{products.map(p=><ProductRow product={p} key={p.name} onClick={()=>onDetail(p)}/>)}</div></div> }
 function Stat({icon,num,label,change,urgent}) { return <article className={'stat '+(urgent?'urgent':'')}><div className="stat-icon">{icon}</div><div><strong>{num}</strong><p>{label}</p><small>{change}</small></div></article> }
 function ProductRow({product,onClick}) { return <article className="product-row" onClick={onClick}><img src={product.image} alt=""/><div className="product-name"><strong>{product.name}</strong><span>{product.category} · Talla {product.size}</span></div><div className="metric"><small>STOCK ACTUAL</small><b>{product.stock} <i>uds.</i></b></div><div className="metric"><small>COBERTURA</small><b>{product.days} <i>días</i></b></div><div className="risk"><span className={product.risk==='Crítico'?'critical':''}>{product.risk}</span></div><button className="round"><ChevronRight size={19}/></button></article> }
