@@ -167,6 +167,7 @@ function App() {
   const [analysisPhase, setAnalysisPhase] = useState(0);
   const [modal, setModal] = useState(false);
   const [requestActionProcessingId, setRequestActionProcessingId] = useState(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Load datasets on mount
   const loadData = async () => {
@@ -388,7 +389,10 @@ function App() {
         <Nav icon={<History/>} label="Historial" active={view === 'history'} onClick={() => setView('history')}/>
       </nav>
       <div className="agent-card"><div className="agent-glow"></div><div className="agent-icon"><BrainCircuit size={18}/></div><strong>IA disponible</strong><p>3 agentes listos para analizar tu operación.</p><div><i></i> Sistema en línea</div></div>
-      <div className="side-bottom"><Nav icon={<Settings/>} label="Configuración"/><div className="user"><div className="avatar">EM</div><div><strong>Elena Mora</strong><small>Inventario</small></div><ChevronRight size={15}/></div></div>
+      <div className="side-bottom">
+        <Nav icon={<Settings/>} label="Configuración" active={view === 'settings'} onClick={() => setView('settings')}/>
+        <div className="user"><div className="avatar">EM</div><div><strong>Elena Mora</strong><small>Inventario</small></div><ChevronRight size={15}/></div>
+      </div>
     </aside>
     
     <section className="content">
@@ -408,12 +412,29 @@ function App() {
              view === 'detail' ? 'Recomendación de reposición' : 
              view === 'history' ? 'Historial de decisiones' : 
              view === 'requests' ? 'Solicitudes de compra' : 
+             view === 'settings' ? 'Configuración de operación' :
              'Inventario en riesgo'}
           </h1>
         </div>
         <div className="header-actions">
           <button className="icon-btn"><Search size={19}/></button>
-          <button className="icon-btn notification"><Bell size={19}/><b></b></button>
+          <div className="notifications-wrap">
+            <button className="icon-btn notification" aria-label="Ver notificaciones" onClick={() => setNotificationsOpen(!notificationsOpen)}>
+              <Bell size={19}/><b></b>
+            </button>
+            {notificationsOpen && (
+              <Notifications 
+                products={analyzedProducts} 
+                onSelect={(product) => {
+                  if (product) {
+                    setSelected(product);
+                    setView('detail');
+                  }
+                  setNotificationsOpen(false);
+                }}
+              />
+            )}
+          </div>
           <button className="action-button" onClick={runAnalysis}><Sparkles size={17}/> Analizar inventario</button>
         </div>
       </header>
@@ -424,6 +445,7 @@ function App() {
       {view === 'detail' && <Detail product={selected} onRequest={() => setModal(true)} onBack={() => setView('results')}/>} 
       {view === 'requests' && <RequestsView requests={requests} onApprove={handleApproveRequest} onReject={handleRejectRequest} processingId={requestActionProcessingId}/>}
       {view === 'history' && <HistoryView history={history}/>}
+      {view === 'settings' && <SettingsView/>}
     </section>
     
     {modal && <RequestModal product={selected} onConfirm={handleCreateRequest} close={() => setModal(false)} />}
@@ -436,6 +458,55 @@ function Nav({icon,label,active,badge,onClick}) {
     <span>{label}</span>
     {badge && <em>{badge}</em>}
   </button>;
+}
+
+function Notifications({ products, onSelect }) {
+  const notices = [
+    {
+      product: products.find(p => p.name === 'Chaqueta Denim Classic' || p.id === 1),
+      title: 'Stock crítico detectado',
+      detail: 'Chaqueta Denim Classic · 5 unidades',
+      time: 'Hace 12 min',
+      kind: 'critical'
+    },
+    {
+      product: products.find(p => p.name === 'Blazer Sastrero Arena' || p.id === 2),
+      title: 'Reposición recomendada',
+      detail: 'Blazer Sastrero Arena · cobertura de 3 días',
+      time: 'Hace 38 min',
+      kind: 'warning'
+    },
+    {
+      product: products.find(p => p.name === 'Pantalón Cargo Olive' || p.id === 3),
+      title: 'Riesgo de cobertura',
+      detail: 'Pantalón Cargo Olive · revisa el pedido',
+      time: 'Hace 1 h',
+      kind: 'info'
+    }
+  ];
+  return (
+    <div className="notifications-panel">
+      <div className="notifications-title">
+        <div>
+          <p className="eyebrow">INVENTARIO</p>
+          <strong>Últimas alertas</strong>
+        </div>
+        <span>3 nuevas</span>
+      </div>
+      {notices.map(note => (
+        <button className="notice" key={note.title} onClick={() => onSelect(note.product)}>
+          <i className={note.kind}></i>
+          <div>
+            <strong>{note.title}</strong>
+            <p>{note.detail}</p>
+            <small>{note.time}</small>
+          </div>
+          <ChevronRight size={15} />
+        </button>
+      ))}
+      <div className="notifications-footer">Selecciona una alerta para ver la recomendación</div>
+    </div>
+  );
 }
 
 function Dashboard({items,totalItemsCount,pendingRequestsCount,onRun,onDetail}) { 
@@ -776,6 +847,98 @@ function HistoryView({ history }) {
         ))
       )}
     </div>
+  </div>;
+}
+
+function SettingsView() {
+  const [alerts, setAlerts] = useState(true);
+  const [summary, setSummary] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const save = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  };
+  return (
+    <div className="settings-page page-enter">
+      <div className="settings-intro">
+        <div>
+          <p className="eyebrow">PREFERENCIAS DEL SISTEMA</p>
+          <h2>Una operación a tu medida.</h2>
+          <p>Define cuándo StockFlow debe avisarte y cómo debe trabajar el equipo de agentes.</p>
+        </div>
+        <div className="settings-orb"><Settings size={28}/></div>
+      </div>
+      <div className="settings-grid">
+        <section className="settings-panel">
+          <div className="settings-head">
+            <div>
+              <span className="setting-icon"><Bell size={18}/></span>
+              <h3>Alertas de inventario</h3>
+            </div>
+            <p>Controla los avisos importantes para tu operación.</p>
+          </div>
+          <Setting label="Alertas de reposición" text="Recibe un aviso al detectar cobertura inferior a 7 días." checked={alerts} onChange={() => setAlerts(!alerts)}/>
+          <Setting label="Resumen diario" text="Envía el estado del inventario a las 08:00." checked={summary} onChange={() => setSummary(!summary)}/>
+          <div className="threshold">
+            <div>
+              <strong>Sensibilidad de riesgo</strong>
+              <p>Anticipar quiebre con</p>
+            </div>
+            <select defaultValue="7">
+              <option value="5">5 días</option>
+              <option value="7">7 días</option>
+              <option value="10">10 días</option>
+            </select>
+          </div>
+        </section>
+        <section className="settings-panel">
+          <div className="settings-head">
+            <div>
+              <span className="setting-icon"><BrainCircuit size={18}/></span>
+              <h3>Agentes inteligentes</h3>
+            </div>
+            <p>Estado actual de los especialistas que componen StockFlow.</p>
+          </div>
+          <div className="integration">
+            <div className="integration-dot"></div>
+            <div>
+              <strong>Inventory Analysis Agent</strong>
+              <p>Conectado · Análisis de existencias</p>
+            </div>
+            <span>ACTIVO</span>
+          </div>
+          <div className="integration">
+            <div className="integration-dot"></div>
+            <div>
+              <strong>Replenishment Planning Agent</strong>
+              <p>Conectado · Estrategia de compra</p>
+            </div>
+            <span>ACTIVO</span>
+          </div>
+          <div className="integration">
+            <div className="integration-dot"></div>
+            <div>
+              <strong>Recommendation Agent</strong>
+              <p>Conectado · Communication operativa</p>
+            </div>
+            <span>ACTIVO</span>
+          </div>
+        </section>
+      </div>
+      <button className={'primary settings-save ' + (saved ? 'saved' : '')} onClick={save}>
+        {saved ? <><Check size={17}/> Cambios guardados</> : <><Settings size={17}/> Guardar preferencias</>}
+      </button>
+    </div>
+  );
+}
+
+function Setting({label,text,checked,onChange}){
+  return <div className="setting-row">
+    <div>
+      <strong>{label}</strong>
+      <p>{text}</p>
+    </div>
+    <button className={'toggle '+(checked?'on':'')} onClick={onChange} aria-label={label}><i></i></button>
   </div>;
 }
 
