@@ -10,7 +10,11 @@ const BACKUP_PRODUCTS = [
   { id: 2, producto: 'Blazer Sastrero Arena', categoria: 'Sastrería', talla: 'M', stock_actual: 8, consumo_diario_promedio: 2.66, imagen: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85' },
   { id: 3, producto: 'Pantalón Cargo Olive', categoria: 'Bottoms', talla: '32', stock_actual: 11, consumo_diario_promedio: 2.2, imagen: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=700&q=85' },
   { id: 4, producto: 'Camisa Oxford Blanca', categoria: 'Camisas', talla: 'M', stock_actual: 35, consumo_diario_promedio: 1.2, imagen: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=700&q=85' },
-  { id: 5, producto: 'Vestido Midi Lino', categoria: 'Vestidos', talla: 'S', stock_actual: 2, consumo_diario_promedio: 0.0, imagen: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=85' }
+  { id: 5, producto: 'Vestido Midi Lino', categoria: 'Vestidos', talla: 'S', stock_actual: 2, consumo_diario_promedio: 0.0, imagen: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=85' },
+  { id: 6, producto: 'Camiseta Básica Algodón', categoria: 'Camisetas', talla: 'M', stock_actual: 15, consumo_diario_promedio: 4.0, imagen: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=85' },
+  { id: 7, producto: 'Jeans Slim Fit Indigo', categoria: 'Jeans', talla: '32', stock_actual: 50, consumo_diario_promedio: 1.5, imagen: 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=700&q=85' },
+  { id: 8, producto: 'Tenis Urban Retro', categoria: 'Zapatos', talla: '42', stock_actual: 4, consumo_diario_promedio: 1.0, imagen: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=85' },
+  { id: 9, producto: 'Gorra Deportiva Active', categoria: 'Gorras', talla: 'Única', stock_actual: 12, consumo_diario_promedio: 3.0, imagen: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=700&q=85' }
 ];
 
 const BACKUP_SUPPLIERS = [
@@ -19,7 +23,12 @@ const BACKUP_SUPPLIERS = [
   { id: 3, producto_id: 2, nombre: 'Textil Andino', costo_unitario: 45.00, plazo_entrega_dias: 3 },
   { id: 4, producto_id: 3, nombre: 'Distrito 9', costo_unitario: 18.00, plazo_entrega_dias: 5 },
   { id: 5, producto_id: 4, nombre: 'Camisas del Norte', costo_unitario: 15.00, plazo_entrega_dias: 6 },
-  { id: 6, producto_id: 5, nombre: 'Lino Real', costo_unitario: 35.00, plazo_entrega_dias: 4 }
+  { id: 6, producto_id: 5, nombre: 'Lino Real', costo_unitario: 35.00, plazo_entrega_dias: 4 },
+  { id: 7, producto_id: 6, nombre: 'CottonStyle', costo_unitario: 8.00, plazo_entrega_dias: 3 },
+  { id: 8, producto_id: 7, nombre: 'DenimFactory', costo_unitario: 22.00, plazo_entrega_dias: 5 },
+  { id: 9, producto_id: 8, nombre: 'Calzado Express', costo_unitario: 30.00, plazo_entrega_dias: 2 },
+  { id: 10, producto_id: 8, nombre: 'Calzado Premium', costo_unitario: 35.00, plazo_entrega_dias: 1 },
+  { id: 11, producto_id: 9, nombre: 'Accesorios Sport', costo_unitario: 6.00, plazo_entrega_dias: 5 }
 ];
 
 const BACKUP_REQUESTS = [
