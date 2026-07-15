@@ -3,7 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "dependencies": { "@vitejs/plugin-react": "latest", "vite": "latest", "react": "latest", "react-dom": "latest", "lucide-react": "latest" },
-  "devDependencies": {}
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.6",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "latest",
+    "pg": "^8.22.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  }
 }
