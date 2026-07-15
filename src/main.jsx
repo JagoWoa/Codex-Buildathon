@@ -66,7 +66,7 @@ function runInventoryAnalysis(productsList, suppliersList) {
         costo_estimado: 0,
         explicacion: 'No hay proveedores registrados para este producto.',
         selectedSupplier: null,
-        warning: false
+        warning: false,
       };
     }
 
