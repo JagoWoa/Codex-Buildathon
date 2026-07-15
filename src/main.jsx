@@ -1,0 +1,65 @@
+import React, { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Activity, ArrowUpRight, Bell, Boxes, BrainCircuit, Check, ChevronRight, CircleAlert, Clock3, FilePlus2, Gauge, History, PackageSearch, PanelLeft, Plus, Search, Settings, Sparkles, Truck, X } from 'lucide-react';
+import './styles.css';
+
+const products = [
+  { name: 'Chaqueta Denim Classic', category: 'Outerwear', size: 'L', stock: 5, days: 2, risk: 'Crítico', units: 30, supplier: 'ModaExpress', tone: 'denim', image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&w=700&q=85' },
+  { name: 'Blazer Sastrero Arena', category: 'Sastrería', size: 'M', stock: 8, days: 3, risk: 'Alto', units: 24, supplier: 'Textil Andino', tone: 'sand', image: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=700&q=85' },
+  { name: 'Pantalón Cargo Olive', category: 'Bottoms', size: '32', stock: 11, days: 5, risk: 'Alto', units: 18, supplier: 'Distrito 9', tone: 'olive', image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=700&q=85' },
+];
+
+function App() {
+  const [view, setView] = useState('dashboard');
+  const [selected, setSelected] = useState(products[0]);
+  const [processing, setProcessing] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState(0);
+  const [modal, setModal] = useState(false);
+  const runAnalysis = () => { setView('analysis'); setAnalysisPhase(0); setProcessing(true); };
+  useEffect(() => {
+    if (!processing) return undefined;
+    const timers = [
+      setTimeout(() => setAnalysisPhase(1), 1100),
+      setTimeout(() => setAnalysisPhase(2), 2300),
+      setTimeout(() => { setAnalysisPhase(3); setProcessing(false); }, 3400),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [processing]);
+  const goDetail = (product) => { setSelected(product); setView('detail'); };
+
+  return <main className="app-shell">
+    <aside className="sidebar">
+      <div className="brand"><div className="brand-mark"><Boxes size={20}/></div><span>stockflow<span>ai</span></span></div>
+      <div className="workspace"><span>OPERACIONES</span><ChevronRight size={13}/></div>
+      <nav>
+        <Nav icon={<Gauge/>} label="Centro de control" active={view === 'dashboard'} onClick={() => setView('dashboard')}/>
+        <Nav icon={<PackageSearch/>} label="Inventario" onClick={() => setView('results')}/>
+        <Nav icon={<FilePlus2/>} label="Solicitudes" badge="3" onClick={() => setView('requests')}/>
+        <Nav icon={<History/>} label="Historial" onClick={() => setView('history')}/>
+      </nav>
+      <div className="agent-card"><div className="agent-glow"></div><div className="agent-icon"><BrainCircuit size={18}/></div><strong>IA disponible</strong><p>3 agentes listos para analizar tu operación.</p><div><i></i> Sistema en línea</div></div>
+      <div className="side-bottom"><Nav icon={<Settings/>} label="Configuración"/><div className="user"><div className="avatar">EM</div><div><strong>Elena Mora</strong><small>Inventario</small></div><ChevronRight size={15}/></div></div>
+    </aside>
+    <section className="content">
+      <header><div><p className="eyebrow">MARTES, 15 JULIO 2026</p><h1>{view === 'dashboard' ? 'Buenos días, Elena.' : view === 'analysis' ? 'Orquestando inventario' : view === 'detail' ? 'Recomendación de reposición' : view === 'history' ? 'Historial de decisiones' : view === 'requests' ? 'Solicitudes de compra' : 'Inventario en riesgo'}</h1></div><div className="header-actions"><button className="icon-btn"><Search size={19}/></button><button className="icon-btn notification"><Bell size={19}/><b></b></button><button className="action-button" onClick={runAnalysis}><Sparkles size={17}/> Analizar inventario</button></div></header>
+      {view === 'dashboard' && <Dashboard onRun={runAnalysis} onDetail={goDetail}/>} 
+      {view === 'analysis' && <Analysis processing={processing} phase={analysisPhase} onFinish={() => setView('results')}/>} 
+      {view === 'results' && <Results onDetail={goDetail}/>} 
+      {view === 'detail' && <Detail product={selected} onRequest={() => setModal(true)} onBack={() => setView('results')}/>} 
+      {view === 'requests' && <Requests/>}
+      {view === 'history' && <HistoryView/>}
+    </section>
+    {modal && <RequestModal product={selected} close={() => setModal(false)} />}
+  </main>
+}
+function Nav({icon,label,active,badge,onClick}) { return <button className={'nav-item '+(active?'active':'')} onClick={onClick}>{icon}<span>{label}</span>{badge && <em>{badge}</em>}</button> }
+function Dashboard({onRun,onDetail}) { return <div className="page-enter"><section className="hero"><div className="hero-copy"><div className="pill"><Sparkles size={13}/> Inteligencia de inventario</div><h2>Tu inventario habla.<br/><i>StockFlow escucha.</i></h2><p>Detectamos el riesgo antes de que se convierta en una venta perdida.</p><button className="primary" onClick={onRun}>Iniciar análisis ahora <ArrowUpRight size={17}/></button></div><div className="orbital"><div className="orbit o1"></div><div className="orbit o2"></div><div className="core"><BrainCircuit size={38}/><small>AGENTES<br/>ACTIVOS</small></div><span className="node n1">A</span><span className="node n2">P</span><span className="node n3">R</span></div></section><div className="stats"><Stat icon={<Boxes/>} num="1,248" label="Productos monitoreados" change="+42 esta semana"/><Stat icon={<CircleAlert/>} num="12" label="Requieren atención" change="3 críticos" urgent/><Stat icon={<FilePlus2/>} num="03" label="Solicitudes por aprobar" change="Valor: $3,840"/></div><section className="section-head"><div><p className="eyebrow">REQUIERE ACCIÓN</p><h2>Alertas de reposición</h2></div><button className="text-button" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>Ver inventario <ChevronRight size={17}/></button></section><div className="alerts">{products.map(p=><ProductRow product={p} key={p.name} onClick={()=>onDetail(p)}/>)}</div></div> }
+function Stat({icon,num,label,change,urgent}) { return <article className={'stat '+(urgent?'urgent':'')}><div className="stat-icon">{icon}</div><div><strong>{num}</strong><p>{label}</p><small>{change}</small></div></article> }
+function ProductRow({product,onClick}) { return <article className="product-row" onClick={onClick}><img src={product.image} alt=""/><div className="product-name"><strong>{product.name}</strong><span>{product.category} · Talla {product.size}</span></div><div className="metric"><small>STOCK ACTUAL</small><b>{product.stock} <i>uds.</i></b></div><div className="metric"><small>COBERTURA</small><b>{product.days} <i>días</i></b></div><div className="risk"><span className={product.risk==='Crítico'?'critical':''}>{product.risk}</span></div><button className="round"><ChevronRight size={19}/></button></article> }
+function Analysis({processing,phase,onFinish}) { const steps=[['Inventory Analysis Agent','Analizando niveles, rotación y cobertura','Consulta de 1,248 referencias'],['Replenishment Planning Agent','Calculando cantidades y proveedores','Optimizando 12 decisiones'],['Recommendation Agent','Traduciendo datos en acciones claras','Preparando tu resumen']]; const progress=processing?Math.round(((phase+1)/3)*100):100; return <div className="analysis page-enter"><div className="analysis-top"><div className={'pulse-orb '+(!processing?'done':'')}><BrainCircuit size={42}/></div><p className="eyebrow">INVENTORY SUPERVISOR AGENT</p><h2>{processing?'Los agentes están en movimiento':'Análisis completo'}</h2><p>{processing?'Cada especialista está construyendo la recomendación más segura para tu inventario.':'Encontramos 12 oportunidades para proteger tus ventas.'}</p></div><div className="analysis-progress"><span>PROGRESO DEL ANÁLISIS</span><div><i style={{width:`${progress}%`}}></i></div><b>{progress}%</b></div><div className="agent-flow">{steps.map((s,i)=>{const complete=!processing||i<phase;const current=processing&&i===phase;return <React.Fragment key={s[0]}><div className={'agent-step '+(complete?'complete ':'')+(current?'running':'')}><div className="check">{complete?<Check size={18}/>:current?<span className="spinner"></span>:<span>{i+1}</span>}</div><div><strong>{s[0]}</strong><p>{s[1]}</p><small>{s[2]}</small></div><div className="status">{complete?'LISTO':current?'ANALIZANDO':'EN ESPERA'}</div></div>{i<2&&<div className={'connector '+(complete?'lit':'')}></div>}</React.Fragment>})}</div>{!processing&&<button className="primary result-btn" onClick={onFinish}>Ver recomendaciones <ArrowUpRight size={17}/></button>}</div> }
+function Results({onDetail}) { return <div className="page-enter"><div className="result-summary"><div><p className="eyebrow">RESULTADO DEL ANÁLISIS</p><h2>12 productos necesitan atención.</h2><p>La IA priorizó las acciones según riesgo de quiebre, impacto y tiempo de entrega.</p></div><button className="ghost"><Activity size={16}/> Ver informe completo</button></div><div className="results-grid">{products.map(p=><article className="product-card" key={p.name}><img src={p.image} alt=""/><div className="card-body"><span className={'risk-tag '+(p.risk==='Crítico'?'critical':'')}>{p.risk}</span><h3>{p.name}</h3><p>{p.category} · Talla {p.size}</p><div className="card-numbers"><div><small>STOCK</small><b>{p.stock} uds.</b></div><div><small>COBERTURA</small><b>{p.days} días</b></div></div><button onClick={()=>onDetail(p)}>Ver recomendación <ArrowUpRight size={16}/></button></div></article>)}</div></div> }
+function Detail({product,onRequest,onBack}) { return <div className="detail page-enter"><button className="back" onClick={onBack}>← Volver a resultados</button><div className="detail-grid"><div className="detail-product"><img src={product.image} alt=""/><p className="eyebrow">{product.category.toUpperCase()} · TALLA {product.size}</p><h2>{product.name}</h2><div className="stock-line"><div><small>STOCK ACTUAL</small><b>{product.stock} unidades</b></div><div><small>COBERTURA ESTIMADA</small><b className="danger">{product.days} días</b></div></div></div><div className="recommendation"><div className="rec-head"><div className="mini-brain"><Sparkles size={18}/></div><span>RECOMENDACIÓN IA</span></div><h3>Actúa hoy para evitar<br/>un quiebre de stock.</h3><p>El ritmo de ventas actual agotará esta referencia en <b>{product.days} días</b>. El proveedor recomendado puede entregar antes del punto crítico.</p><div className="rec-data"><div><Truck size={17}/><span>PROVEEDOR<br/><b>{product.supplier}</b></span></div><div><Plus size={17}/><span>CANTIDAD SUGERIDA<br/><b>{product.units} unidades</b></span></div><div><Clock3 size={17}/><span>TIEMPO DE ENTREGA<br/><b>4 días hábiles</b></span></div></div><button className="primary full" onClick={onRequest}>Generar solicitud <FilePlus2 size={17}/></button></div></div></div> }
+function Requests(){return <div className="empty page-enter"><FilePlus2 size={42}/><h2>3 solicitudes por aprobar</h2><p>Las recomendaciones generadas por StockFlow esperan tu validación.</p><button className="primary">Revisar solicitudes <ArrowUpRight size={17}/></button></div>}
+function HistoryView(){return <div className="history page-enter"><div className="history-table"><div className="table-head"><span>FECHA</span><span>PRODUCTO</span><span>ACCIÓN</span><span>ESTADO</span></div>{[['14 Jul, 2026','Camisa Oxford blanca','Compra de 40 unidades','Aprobada'],['11 Jul, 2026','Zapatilla Canvas','Compra de 25 unidades','En tránsito'],['08 Jul, 2026','Vestido Midi lino','Sin acción requerida','Cerrada']].map(r=><div className="table-row" key={r[0]}>{r.map((v,i)=><span key={v} className={i===3?'state':''}>{v}</span>)}</div>)}</div></div>}
+function RequestModal({product,close}){const [done,setDone]=useState(false); return <div className="overlay"><div className="modal"><button className="modal-close" onClick={close}><X/></button>{done?<div className="success"><div><Check size={34}/></div><h2>Solicitud creada</h2><p>La compra de {product.units} unidades fue enviada a {product.supplier}.</p><button className="primary" onClick={close}>Entendido</button></div>:<><p className="eyebrow">NUEVA SOLICITUD</p><h2>Confirma la reposición</h2><div className="confirm-row"><img src={product.image} alt=""/><div><strong>{product.name}</strong><p>{product.units} unidades · {product.supplier}</p></div></div><div className="modal-total"><span>Inversión estimada</span><b>${(product.units*28.5).toLocaleString('en-US',{minimumFractionDigits:2})}</b></div><button className="primary full" onClick={()=>setDone(true)}>Confirmar solicitud <Check size={17}/></button></>}</div></div>}
+createRoot(document.getElementById('root')).render(<App />);
