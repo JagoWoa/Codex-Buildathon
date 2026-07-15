@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Activity, ArrowUpRight, Bell, Boxes, BrainCircuit, Check, ChevronRight, CircleAlert, Clock3, FilePlus2, Gauge, History, PackageSearch, PanelLeft, Plus, Search, Settings, Sparkles, Truck, X } from 'lucide-react';
 import './styles.css';
 import { supabase } from './supabaseClient';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Local backup datasets as required by implementation plan (Section 6 & 8)
 const BACKUP_PRODUCTS = [
@@ -177,6 +179,231 @@ function App() {
   const [modal, setModal] = useState(false);
   const [requestActionProcessingId, setRequestActionProcessingId] = useState(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Generate PDF report utilizing jsPDF and jspdf-autotable
+  const generatePDFReport = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Color Palette matching StockFlow AI styles
+      const primaryColor = [117, 159, 126]; // Sage green #759f7e
+      const secondaryColor = [74, 85, 104]; // Slate gray #4a5568
+      const lightColor = [247, 250, 252]; // Off-white #f7fafc
+      const textColor = [45, 55, 72]; // Charcoal #2d3748
+      const alertColor = [224, 130, 130]; // Pastel red #e08282
+
+      // Header and Footer decoration helper
+      const addHeaderAndFooter = (pageNumber, pageCount) => {
+        // Top header band
+        doc.setFillColor(117, 159, 126);
+        doc.rect(0, 0, 210, 15, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('StockFlow AI — Reporte Ejecutivo de Inventario', 15, 9);
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Página ${pageNumber} de ${pageCount}`, 180, 9);
+
+        // Bottom footer line and text
+        doc.setDrawColor(226, 232, 240);
+        doc.line(15, 282, 195, 282);
+        doc.setFontSize(7);
+        doc.setTextColor(160, 174, 192);
+        doc.text('StockFlow AI · Optimización de Inventario Multiagente en tiempo real · Confidencial', 15, 287);
+      };
+
+      // Document Title & Subtitle
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(74, 85, 104);
+      doc.text('REPORTE DE INVENTARIO Y PLAN DE REPOSICIÓN', 15, 30);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(113, 128, 150);
+      const now = new Date().toLocaleString('es-ES', { timeZone: 'America/Bogota' });
+      doc.text(`Fecha de Generación: ${now} | Sucursal Evaluada: Bodega Central (Venta de Ropa)`, 15, 36);
+      doc.setDrawColor(117, 159, 126);
+      doc.setLineWidth(0.5);
+      doc.line(15, 39, 195, 39);
+
+      // Section 1: Resumen Ejecutivo
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(74, 85, 104);
+      doc.text('1. Resumen Ejecutivo', 15, 48);
+
+      const activeRecommendations = analyzedProducts.filter(p => p.units > 0);
+      const totalProposedInvestment = activeRecommendations.reduce((acc, curr) => acc + (curr.costo_estimado || 0), 0);
+
+      // Draw background panel for metrics
+      doc.setFillColor(247, 250, 252);
+      doc.roundedRect(15, 53, 180, 28, 3, 3, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(113, 128, 150);
+      doc.text('Total Productos Analizados', 20, 60);
+      doc.text('Prendas Críticas/Atención', 70, 60);
+      doc.text('Propuestas de Compra', 120, 60);
+      doc.text('Inversión Total Propuesta', 160, 60);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(45, 55, 72);
+      doc.text(`${products.length}`, 20, 71);
+      
+      const criticalCount = analyzedProducts.filter(p => p.risk === 'Crítico' || p.risk === 'Alto').length;
+      if (criticalCount > 0) {
+        doc.setTextColor(224, 130, 130); // Alert red
+      } else {
+        doc.setTextColor(117, 159, 126); // Sage green
+      }
+      doc.text(`${criticalCount}`, 70, 71);
+      
+      doc.setTextColor(45, 55, 72);
+      doc.text(`${activeRecommendations.length}`, 120, 71);
+      
+      doc.setTextColor(117, 159, 126); // Sage green
+      doc.text(`$${totalProposedInvestment.toFixed(2)} USD`, 160, 71);
+
+      // Section 2: Análisis de Criticidad (Días de Cobertura)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(74, 85, 104);
+      doc.text('2. Análisis de Criticidad de Inventario', 15, 92);
+      
+      // Sort items by coverage days ascending (criticidad)
+      const sortedItems = [...analyzedProducts].sort((a, b) => {
+        const covA = typeof a.daysVal === 'number' ? a.daysVal : 999;
+        const covB = typeof b.daysVal === 'number' ? b.daysVal : 999;
+        return covA - covB;
+      });
+
+      const criticidadHeaders = [['ID', 'Producto', 'Categoría', 'Talla', 'Stock', 'Consumo Diarios', 'Cobertura (Días)', 'Riesgo']];
+      const criticidadBody = sortedItems.map(p => {
+        const coverage = typeof p.daysVal === 'number' && p.daysVal !== Infinity ? p.daysVal.toFixed(1) : '∞';
+        return [
+          p.id,
+          p.name || p.producto,
+          p.category || p.categoria,
+          p.size || p.talla,
+          p.stock !== undefined ? p.stock : p.stock_actual,
+          p.consumo_diario_promedio !== undefined ? p.consumo_diario_promedio.toFixed(2) : '0.00',
+          coverage,
+          p.risk || 'Bajo'
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 97,
+        head: criticidadHeaders,
+        body: criticidadBody,
+        theme: 'striped',
+        headStyles: { fillColor: [74, 85, 104], fontSize: 9 },
+        bodyStyles: { fontSize: 8.5 },
+        alternateRowStyles: { fillColor: [247, 250, 252] },
+        columnStyles: {
+          7: { fontStyle: 'bold' }
+        },
+        didParseCell: function (data) {
+          if (data.column.index === 7) {
+            const val = data.cell.text[0];
+            if (val === 'Crítico') {
+              data.cell.styles.textColor = [224, 130, 130];
+            } else if (val === 'Alto') {
+              data.cell.styles.textColor = [224, 170, 100];
+            } else if (val === 'Bajo' || val === 'Normal') {
+              data.cell.styles.textColor = [117, 159, 126];
+            }
+          }
+        }
+      });
+
+      // Section 3: Plan de Reposición Implementado
+      doc.addPage();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(74, 85, 104);
+      doc.text('3. Plan de Reposición Implementado', 15, 25);
+
+      if (activeRecommendations.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(10);
+        doc.setTextColor(113, 128, 150);
+        doc.text('No se requieren compras en este ciclo de análisis. Todos los productos disponen de stock suficiente.', 15, 33);
+      } else {
+        const reposicionHeaders = [['Producto', 'Talla', 'Proveedor Seleccionado', 'Cantidad a Pedir', 'Costo Unitario', 'Plazo (Días)', 'Costo Total']];
+        const reposicionBody = activeRecommendations.map(p => {
+          return [
+            p.name || p.producto,
+            p.size || p.talla,
+            p.supplier || 'N/A',
+            `${p.units} uds.`,
+            `$${(p.selectedSupplier?.costo_unitario || 0).toFixed(2)}`,
+            `${p.selectedSupplier?.plazo_entrega_dias || 0} días`,
+            `$${(p.costo_estimado || 0).toFixed(2)}`
+          ];
+        });
+
+        autoTable(doc, {
+          startY: 30,
+          head: reposicionHeaders,
+          body: reposicionBody,
+          theme: 'striped',
+          headStyles: { fillColor: [117, 159, 126], fontSize: 9 },
+          bodyStyles: { fontSize: 8.5 },
+          alternateRowStyles: { fillColor: [247, 250, 252] }
+        });
+
+        // Section 4: Historial de Decisiones Inteligentes
+        const lastY = doc.lastAutoTable.finalY + 15;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.setTextColor(74, 85, 104);
+        doc.text('4. Justificaciones de Decisiones Inteligentes (IA)', 15, lastY);
+
+        let currentY = lastY + 8;
+        activeRecommendations.forEach((p, idx) => {
+          if (currentY > 260) {
+            doc.addPage();
+            currentY = 25;
+          }
+          
+          doc.setFontSize(9.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(45, 55, 72);
+          doc.text(`${idx + 1}. ${p.name || p.producto} (Talla ${p.size || p.talla})`, 15, currentY);
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(113, 128, 150);
+          
+          const explanationText = p.explicacion || 'No hay explicación adicional.';
+          const splitText = doc.splitTextToSize(explanationText, 180);
+          
+          currentY += 4.5;
+          doc.text(splitText, 15, currentY);
+          currentY += (splitText.length * 4) + 6;
+        });
+      }
+
+      // Add headers/footers to all pages
+      const pages = doc.getNumberOfPages();
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        addHeaderAndFooter(i, pages);
+      }
+
+      // Save the PDF
+      doc.save('reporte_gestion_inventario.pdf');
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Hubo un error al generar el reporte en PDF: ' + error.message);
+    }
+  };
 
   // Load datasets on mount
   const loadData = async () => {
@@ -450,7 +677,7 @@ function App() {
       
       {view === 'dashboard' && <Dashboard items={inRiskProducts} totalItemsCount={products.length} pendingRequestsCount={pendingRequests.length} onRun={runAnalysis} onDetail={goDetail}/>} 
       {view === 'analysis' && <Analysis processing={processing} phase={analysisPhase} onFinish={() => setView('results')}/>} 
-      {view === 'results' && <Results items={analyzedProducts} onDetail={goDetail}/>} 
+      {view === 'results' && <Results items={analyzedProducts} onDetail={goDetail} onGeneratePDF={generatePDFReport}/>} 
       {view === 'detail' && <Detail product={selected} onRequest={() => setModal(true)} onBack={() => setView('results')}/>} 
       {view === 'requests' && <RequestsView requests={requests} onApprove={handleApproveRequest} onReject={handleRejectRequest} processingId={requestActionProcessingId}/>}
       {view === 'history' && <HistoryView history={history}/>}
@@ -645,7 +872,7 @@ function Analysis({processing,phase,onFinish}) {
   </div>;
 }
 
-function Results({items,onDetail}) { 
+function Results({items,onDetail,onGeneratePDF}) { 
   // Display only products that have suggestions
   const activeRecommendations = items.filter(p => p.units > 0);
   
@@ -656,7 +883,7 @@ function Results({items,onDetail}) {
         <h2>{activeRecommendations.length} productos necesitan atención.</h2>
         <p>La IA priorizó las acciones según riesgo de quiebre, impacto y tiempo de entrega.</p>
       </div>
-      <button className="ghost"><Activity size={16}/> Ver informe completo</button>
+      <button className="ghost" onClick={onGeneratePDF}><Activity size={16}/> Descargar Reporte PDF</button>
     </div>
     
     {activeRecommendations.length === 0 ? (

@@ -11,6 +11,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.6",
     "@vitejs/plugin-react": "latest",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "latest",
     "pg": "^8.22.0",
     "react": "latest",
